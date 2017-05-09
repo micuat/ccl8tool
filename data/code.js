@@ -46,7 +46,7 @@ if(grids.length == 0) {
 }
 if(anchors.length == 0) {
   for(var j = 0; j < 8; j++) {
-    anchors.push(new Agent(0, 0, j, 0));
+    anchors.push(grids[0][j]);
   }
 }
 
@@ -137,25 +137,35 @@ for each(a in anchors) {
   noStroke();
   ellipse(a.x, a.y, 20, 20);
   fill(128, 255, 255);
+  pushMatrix();
+  translate(10, 10);
   ellipse(a.wx, a.wy, 20, 20);
+  popMatrix();
 
   stroke(0);
   textSize(24);
   fill(0);
   text(String(count + 1), a.x + 10, a.y);
+  pushMatrix();
+  translate(10, 10);
   fill(128, 255, 255);
-  text(String(count + 1), a.wx + 10, a.wy + 30);
+  text(String(count + 1), a.wx + 10, a.wy);
+  popMatrix();
 
   strokeWeight(3);
+  stroke(0, 50);
   if(count < anchors.length - 1) {
     var an = anchors[count+1];
     line(a.x, a.y, an.x, an.y);
   }
-  stroke(128, 255, 255);
+  stroke(128, 255, 255, 50);
+  pushMatrix();
+  translate(10, 10);
   if(count < anchors.length - 1) {
     var an = anchors[count+1];
     line(a.wx, a.wy, an.wx, an.wy);
   }
+  popMatrix();
   count++;
 }
 
@@ -166,22 +176,74 @@ for each(a in anchors) {
 //   agent.x = anchors[Math.floor(seq)].x;
 //   agent.y = anchors[Math.floor(seq)].y;
 // }
-var dx = anchors[Math.floor(seq + 1)].x - anchors[Math.floor(seq)].x;
-agent.x = dx * phase + anchors[Math.floor(seq)].x;
-var dy = anchors[Math.floor(seq + 1)].y - anchors[Math.floor(seq)].y;
-agent.y = dy * phase + anchors[Math.floor(seq)].y;
-noFill();
+strokeWeight(3);
 stroke(0);
-ellipse(agent.x, agent.y, 30, 30);
 
-var dx = anchors[Math.floor(seq + 1)].wx - anchors[Math.floor(seq)].wx;
-wagent.x = dx * phase + anchors[Math.floor(seq)].wx;
-var dy = anchors[Math.floor(seq + 1)].wy - anchors[Math.floor(seq)].wy;
-wagent.y = dy * phase + anchors[Math.floor(seq)].wy;
-fill(128, 255, 255);
-noStroke();
-ellipse(wagent.x, wagent.y, 30, 30);
+function updateAgent(agent, color, isTransposed) {
+  var nx = anchors[Math.floor(seq + 1)].x;
+  var ny = anchors[Math.floor(seq + 1)].y;
+  if(isTransposed) {
+    nx = anchors[Math.floor(seq + 1)].wx;
+    ny = anchors[Math.floor(seq + 1)].wy;
+  }
+  var theta = Math.atan2(ny - agent.y, nx - agent.x);
+  if(agent.theta - theta > Math.PI) {
+    theta += Math.PI * 2;
+  }
+  else if(agent.theta - theta < -Math.PI) {
+    agent.theta += Math.PI * 2;
+  }
+  agent.theta = agent.theta * 0.75 + theta * 0.25;
+  // var dx = nx - anchors[Math.floor(seq)].x;
+  // agent.x = dx * phase + anchors[Math.floor(seq)].x;
+  // var dy = ny - anchors[Math.floor(seq)].y;
+  // agent.y = dy * phase + anchors[Math.floor(seq)].y;
+  var dx = nx - agent.x;
+  var dy = ny - agent.y;
+  var v = Math.sqrt(dx*dx+dy*dy) * 0.02;
+  agent.vx = agent.vx * 0.9 + 0.1 * Math.cos(agent.theta) * v;
+  agent.vy = agent.vy * 0.9 + 0.1 * Math.sin(agent.theta) * v;
+  agent.x += agent.vx;
+  agent.y += agent.vy;
+  if(seq < 0.05) {
+    agent.x = anchors[0].x;
+    agent.y = anchors[0].y;
+    if(isTransposed) {
+      agent.x = anchors[0].wx;
+      agent.y = anchors[0].wy;
+    }
+    agent.vx = 0;
+    agent.vy = 0;
+    agent.trace = [];
+  }
+  agent.trace.push({x:agent.x, y:agent.y});
 
+  pushMatrix();
+  if(isTransposed) {
+    translate(10, 10);
+  }
+  noFill();
+  stroke(color);
+  if(isTransposed) stroke(128, 255, 255);
+  ellipse(agent.x, agent.y, 30, 30);
+
+  pushMatrix();
+  translate(agent.x, agent.y);
+  rotate(agent.theta);
+  line(0, 0, 40, 0);
+  popMatrix();
+
+  for(var i = 0; i < agent.trace.length - 1; i++) {
+    line(agent.trace[i].x, agent.trace[i].y, agent.trace[i+1].x, agent.trace[i+1].y)
+  }
+  popMatrix();
+}
+updateAgent(agent, 0, false);
+updateAgent(wagent, 128, true);
+
+
+// stroke(0);
+// line(agent.x, agent.y, wagent.x, wagent.y);
 
 // command = "";
 if(command.length > 2) command = command.substring(command.length - 2);
